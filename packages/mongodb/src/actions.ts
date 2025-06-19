@@ -6,17 +6,11 @@ import { Contest, Problem, Student } from "./schema";
 export const CF_API_BASE_URL = "https://codeforces.com/api";
 
 export async function syncStudentData(s: Student) {
-  const [infoRes, contestsRes, submissionsRes] = await Promise.all([
-    axios.get(`${CF_API_BASE_URL}/user.info?handles=${s.cf_handle}`),
-    axios.get(`${CF_API_BASE_URL}/user.rating?handle=${s.cf_handle}`),
-    axios.get(`${CF_API_BASE_URL}/user.status?handle=${s.cf_handle}`),
-  ]);
-
+  // Fetch and update student rating info
+  const infoRes = await axios.get(
+    `${CF_API_BASE_URL}/user.info?handles=${s.cf_handle}`
+  );
   const studentInfo = infoRes.data?.result?.[0];
-  const allContests: Contest[] = contestsRes.data?.result || [];
-  const allProblems: Problem[] = submissionsRes.data?.result || [];
-
-  // Update user ratings
   await Users.updateOne(
     { _id: s._id },
     {
@@ -24,62 +18,99 @@ export async function syncStudentData(s: Student) {
       currentRating: studentInfo.rating,
     }
   );
+  console.log("updated user info");
 
-  // Save new contests
-  const newContests: Contest[] = [];
-  for (const c of allContests) {
-    const isExists = await Contests.findOne({
-      contestId: c.contestId,
-      handle: s._id,
-    });
-    if (!isExists) newContests.push({ ...c, handle: s });
-  }
+  // --- Fetch contests in pages ---
+  const contestBatchSize = 10;
+  let contestStart = 1;
+  const fetchedContests: Contest[] = [];
 
-  if (newContests.length > 0) {
-    const insertedContests = await Contests.insertMany(newContests);
-    await Users.updateOne(
-      { _id: s._id },
-      {
-        $push: {
-          contests: {
-            $each: insertedContests.map((c) => c._id),
-          },
-        },
-      }
+  while (true) {
+    const res = await axios.get(
+      `${CF_API_BASE_URL}/user.rating?handle=${s.cf_handle}&from=${contestStart}&count=${contestBatchSize}`
     );
-  }
-  // Save new problems
-  const newProblems: Problem[] = [];
-  for (const p of allProblems) {
-    const isExists = await Problems.findOne({ id: p.id });
+    const batch = res.data?.result as Contest[];
 
-    if (!isExists) {
-      newProblems.push({
-        id: p.id,
-        contestId: p.contestId,
-        creationTimeSeconds: p.creationTimeSeconds,
-        problem: p.problem,
-        verdict: p.verdict,
-        author: { members: [s] },
+    if (!batch || batch.length === 0) break;
+
+    let anyNew = false;
+
+    for (const c of batch) {
+      const exists = await Contests.findOne({
+        contestId: c.contestId,
+        handle: s._id,
       });
-    } else {
-      const alreadyAdded = isExists.author.members.some(
-        (m: { handle: string }) => m.handle === s.cf_handle
-      );
-      if (!alreadyAdded) {
-        await Problems.findOneAndUpdate(
-          { id: p.id },
-          { $push: { "author.members": s._id } }
-        );
+      if (!exists) {
+        fetchedContests.push({ ...c, handle: s });
+        anyNew = true;
       }
     }
+
+    if (!anyNew) break;
+    contestStart += contestBatchSize;
   }
 
-  if (newProblems.length > 0) {
-    const insertedProblems = await Problems.insertMany(newProblems);
+  if (fetchedContests.length > 0) {
+    const insertedContests = await Contests.insertMany(fetchedContests);
+    await Users.updateOne(
+      { _id: s._id },
+      { $push: { contests: { $each: insertedContests.map((c) => c._id) } } }
+    );
+  }
+  console.log("updated user contests");
+
+  // --- Fetch problems in pages ---
+  const problemBatchSize = 10;
+  let problemStart = 1;
+  const fetchedProblems: Problem[] = [];
+
+  while (true) {
+    const res = await axios.get(
+      `${CF_API_BASE_URL}/user.status?handle=${s.cf_handle}&from=${problemStart}&count=${problemBatchSize}`
+    );
+    const batch = res.data?.result as Problem[];
+
+    if (!batch || batch.length === 0) break;
+
+    let anyNew = false;
+
+    for (const p of batch) {
+      const existing = await Problems.findOne({ id: p.id });
+
+      if (!existing) {
+        fetchedProblems.push({
+          id: p.id,
+          contestId: p.contestId,
+          creationTimeSeconds: p.creationTimeSeconds,
+          problem: p.problem,
+          verdict: p.verdict,
+          author: { members: [s] },
+        });
+        anyNew = true;
+      } else {
+        const isMember = existing.author.members.some(
+          (m: string) => m === s._id
+        );
+
+        if (!isMember) {
+          await Problems.updateOne(
+            { id: p.id },
+            { $push: { "author.members": s._id } }
+          );
+        }
+      }
+    }
+
+    if (!anyNew) break;
+    problemStart += problemBatchSize;
+  }
+
+  if (fetchedProblems.length > 0) {
+    const insertedProblems = await Problems.insertMany(fetchedProblems);
     await Users.updateOne(
       { _id: s._id },
       { $push: { problems: { $each: insertedProblems.map((p) => p._id) } } }
     );
   }
+  console.log("updated user problems");
 }
