@@ -1,0 +1,48 @@
+
+> tle2@0.1.0 build
+> next build
+
+   ▲ Next.js 15.3.3
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 46s
+   Linting and checking validity of types ...
+
+./app/providers.tsx
+22:16  Warning: Unknown property 'jsx' found  react/no-unknown-property
+22:20  Warning: Unknown property 'global' found  react/no-unknown-property
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+   Collecting page data ...
+m mongodb+srv://guptas3067:root123@cluster0.6yerxth.mongodb.net/tle
+m mongodb+srv://guptas3067:root123@cluster0.6yerxth.mongodb.net/tle
+m mongodb+srv://guptas3067:root123@cluster0.6yerxth.mongodb.net/tle
+m mongodb+srv://guptas3067:root123@cluster0.6yerxth.mongodb.net/tle
+m mongodb+srv://guptas3067:root123@cluster0.6yerxth.mongodb.net/tle
+   Generating static pages (0/10) ...
+m mongodb+srv://guptas3067:root123@cluster0.6yerxth.mongodb.net/tle
+   Generating static pages (2/10) 
+   Generating static pages (4/10) 
+   Generating static pages (7/10) 
+ ✓ Generating static pages (10/10)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                    55.6 kB         234 kB
+├ ○ /_not-found                            985 B         103 kB
+├ ƒ /api/student                           147 B         102 kB
+├ ƒ /api/student/create                    147 B         102 kB
+├ ƒ /api/student/delete                    147 B         102 kB
+├ ƒ /api/student/getAll                    147 B         102 kB
+├ ƒ /api/student/update                    147 B         102 kB
+└ ƒ /student/[studentId]                  110 kB         288 kB
++ First Load JS shared by all             102 kB
+  ├ chunks/4bd1b696-2ac27ae2c89416a3.js  53.2 kB
+  ├ chunks/684-a144ee1d6d9abfe6.js       46.3 kB
+  └ other shared chunks (total)          2.13 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

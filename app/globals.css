@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --tooltip-bg: 255 255 255;
+  --tooltip-border: 229 231 235;
+  --tooltip-text: 17 24 39;
+}
+
+.dark {
+  --tooltip-bg: 31 41 55;
+  --tooltip-border: 75 85 99;
+  --tooltip-text: 243 244 246;
+}
+
+/* Smooth transitions for theme switching */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
