@@ -20,38 +20,27 @@ export async function syncStudentData(s: Student) {
   );
   console.log("updated user info");
 
-  // --- Fetch contests in pages ---
-  const contestBatchSize = 10;
-  let contestStart = 1;
-  const fetchedContests: Contest[] = [];
+  const newContests: Contest[] = [];
 
-  while (true) {
-    const res = await axios.get(
-      `${CF_API_BASE_URL}/user.rating?handle=${s.cf_handle}&from=${contestStart}&count=${contestBatchSize}`
-    );
-    const batch = res.data?.result as Contest[];
+  const res = await axios.get(
+    `${CF_API_BASE_URL}/user.rating?handle=${s.cf_handle}`
+  );
+  const allContest: Contest[] = res.data.result;
 
-    if (!batch || batch.length === 0) break;
+  for (const c of allContest) {
+    const exists = await Contests.findOne({
+      contestId: c.contestId,
+      handle: s._id,
+    });
+    console.log(allContest.indexOf(c));
 
-    let anyNew = false;
-
-    for (const c of batch) {
-      const exists = await Contests.findOne({
-        contestId: c.contestId,
-        handle: s._id,
-      });
-      if (!exists) {
-        fetchedContests.push({ ...c, handle: s });
-        anyNew = true;
-      }
+    if (!exists) {
+      newContests.push({ ...c, handle: s });
     }
-
-    if (!anyNew) break;
-    contestStart += contestBatchSize;
   }
 
-  if (fetchedContests.length > 0) {
-    const insertedContests = await Contests.insertMany(fetchedContests);
+  if (newContests.length > 0) {
+    const insertedContests = await Contests.insertMany(newContests);
     await Users.updateOne(
       { _id: s._id },
       { $push: { contests: { $each: insertedContests.map((c) => c._id) } } }
@@ -59,7 +48,7 @@ export async function syncStudentData(s: Student) {
   }
   console.log("updated user contests");
 
-  // --- Fetch problems in pages ---
+  // sync  problems
   const problemBatchSize = 10;
   let problemStart = 1;
   const fetchedProblems: Problem[] = [];
@@ -69,6 +58,7 @@ export async function syncStudentData(s: Student) {
       `${CF_API_BASE_URL}/user.status?handle=${s.cf_handle}&from=${problemStart}&count=${problemBatchSize}`
     );
     const batch = res.data?.result as Problem[];
+    console.log({ cbatch: problemStart });
 
     if (!batch || batch.length === 0) break;
 
