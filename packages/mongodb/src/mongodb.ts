@@ -99,8 +99,6 @@ export const Users =
 export const Problems =
   mongoose.models?.problems || mongoose.model<any>("problems", problemSchema);
 
-console.log("m", process.env.MONGODB_URL);
-
 export async function connectDb() {
   await mongoose.connect(process.env.MONGODB_URL!);
 }
