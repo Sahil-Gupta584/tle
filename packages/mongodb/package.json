@@ -7,6 +7,7 @@
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
+    "build": "tsc",
     "check-types": "tsc --noEmit"
   },
   "devDependencies": {
